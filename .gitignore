@@ -1,0 +1,12 @@
+/target
+/classes
+/checkouts
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+src/pfchangsindex/places-api-key.txt
+places-req-out.txt
+places-req-out-pretty.txt
