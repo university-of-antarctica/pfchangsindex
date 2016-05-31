@@ -10,3 +10,6 @@ pom.xml.asc
 src/pfchangsindex/places-api-key.txt
 places-req-out.txt
 places-req-out-pretty.txt
+datomic-console-0.1.206*
+datomic-free-0.9.5359*
+free-transactor-template.properties
