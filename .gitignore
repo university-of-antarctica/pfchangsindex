@@ -13,3 +13,14 @@ places-req-out-pretty.txt
 datomic-console-0.1.206*
 datomic-free-0.9.5359*
 free-transactor-template.properties
+data/GettingStarted.groovy
+data/GettingStarted.java
+data/getting-started.clj
+data/load-seattle-mem.bsh
+data/seattle-data0.edn
+data/seattle-data1.edn
+data/seattle-schema.edn
+data/seattle-schema.edn.bak
+raw-out.txt
+raw-vec.txt
+
