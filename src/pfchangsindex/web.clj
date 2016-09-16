@@ -5,12 +5,12 @@
             [clj-http.client :as client]
             [clojure.data.json :as json]))
 
-(defn req-vector []
-  (get (first (rest (rest (pfchangsindex.web/places-req-copy)))) 1))
-
 (defn places-req-copy []
   (json/read-str
    (slurp "places-req-out.txt")))
+
+(defn req-vector []
+  (get (first (rest (rest (pfchangsindex.web/places-req-copy)))) 1))
 
 (defn places-req []
   (json/read-str
@@ -29,7 +29,7 @@
 
 
 (defroutes routes
-  (GET "/" [] (str (index)))))
+  (GET "/" [] (str (index))))
 
 (defn -main []
   (ring/run-jetty #'routes {:port 8080 :join? false}))
