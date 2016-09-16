@@ -44,14 +44,20 @@
    (json/read-str (slurp "/home/price/development/pfchangsindex/raw-out.txt"))
    (vector)))
 
-(defn places-req [radius lat lon]
+(defn places-req
+  "returns => str
+  The string it returns is a json object in string format. This is the initial
+  request to the google api."
+  [radius lat lon]
   (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
-              {:query-params {"key" (slurp "src/pfchangsindex/places-api-key.txt")
-                              "location" (str lat "," lon)
+              {:query-params {"location" (str lat "," lon)
                               "radius" (str radius)
-                              "keyword" "restaurant"}}))
-
+                              "types" "restaurant"
+                              "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
 (defn places-re-req [token]
+  "returns => str
+  The string it returns is a json object in string format. This is the subsequent
+  request to the google api IF there are additional pages"
   (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
               {:query-params {"key" (slurp "src/pfchangsindex/places-api-key.txt")
                               "pagetoken" token}}))
@@ -61,12 +67,17 @@
 
 (defn extract-results-vec
   ;; returns a vector
+  ""
   [request_body]
   (get (first (rest (rest request_body))) 1))
 
 ;; issue here is it APPEARS as if subsequent pages are bogus.
 ;; need to investigate further as I write the program to get
 ;; exhaustive list of restaurants in given area.
+
+;; TODO this function is garbage and absolutely has bugs. Figure out
+;; if the vec var is used properly. figure out why concat2vecs exists
+;; and get rid of it
 (defn get-subsq-pages-as-vecs [vec token count sleep_time]
   (Thread/sleep sleep_time)
   (let [request (json/read-str (:body (places-re-req token)))
@@ -108,13 +119,18 @@
 (defn req-vector [radius lat lon]
   (let [request (json/read-str (:body (places-req radius lat lon)))
         token (get request "next_page_token")
-        status (get request "status")]
+        status (get request "status")
+        results (extract-results-vec request)]
     (println "-status: " status)
-    (println "token: " token (clojure.string/blank? token))
-    (if (clojure.string/blank? token)
-      ;; on true or false innermost statement, will return vector
-      ;;TODO undo this concat-2vecs fcn
-      (concat-2vecs (extract-results-vec request) []) 
-      (get-subsq-pages-as-vecs (extract-results-vec request)
-                                token (int 0) initial_sleep_time))))
-
+    (println "token: " token "  tokenIsBlank: " (clojure.string/blank? token))
+    (println "type info about extract-results-vec: " (type results))
+    results))
+;;    (if (clojure.string/blank? token)
+;;      ;; on true or false innermost statement, will return vector
+;;      ;;TODO undo this concat-2vecs fcn
+;;      results
+;;      (get-subsq-pages-as-vecs results
+;;                               token
+;;                               (int 0)
+;;                               initial_sleep_time))))
+;;
