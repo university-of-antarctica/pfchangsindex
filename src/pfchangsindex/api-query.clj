@@ -1,59 +1,11 @@
-(ns pfchangsindex.geo
+(ns pfchangsindex.data-fetcher
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]))
-;; doc link for places api!!!
-;; https://developers.google.com/places/web-service/intro
 
-;; common idiom thus far:
-;; (defn places-req-copy []
-;;  (json/read-str
-;;    (slurp "places-req-out.txt")))
 
+;;TODO figure out what to do with the code from here {{{
 (def initial_sleep_time 500)
 
-(defn create-place-map
-  "returns => map
-  operates on elements of vector from extract-places-vec to provide
-  map of relevant data for a given place"
-  [element]
-  (let [id (get element "id")
-        place_id (get element "place_id")
-        name (get element "name")
-        lat (get (get (get element "geometry") "location") "lat")
-        lng (get (get (get element "geometry") "location") "lng")
-        rating (get element "rating") ]
-    (hash-map :id id :place_id place_id :name name :lat lat :lng lng :rating rating)))
-
-(defn extract-places-vec
-  "returns => vector
-  This function takes two arguments, the first is a vector from the req-vector fcn,
-  the second is an empty vector. Using the create-place-map fcn, it returns a vector
-  of maps, where each map has pertinent information on each place"
-  [vec acc_vec]
-  (if (empty? vec)
-    acc_vec
-    (recur (rest vec) (conj acc_vec (create-place-map (first vec))))))
-
-;; TODO define some env variable to eliminate path hardcoding
-(defn extract-places-vec-stored
-  "returns => vector
-  wrapper for fcn extract-places-vec, returns stored query from file rather than
-  quierying google again."
-  []
-  (extract-places-vec
-   (json/read-str (slurp "/home/price/development/pfchangsindex/raw-out.txt"))
-   (vector)))
-
-(defn places-req
-  "returns => str
-  The string it returns is a json object in string format. This is the initial
-  request to the google api."
-  [radius lat lon]
-  (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
-              {:query-params {"location" (str lat "," lon)
-                              "radius" (str radius)
-                              "types" "restaurant"
-                              "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
 (defn places-re-req [token]
   "returns => str
   The string it returns is a json object in string format. This is the subsequent
@@ -65,11 +17,6 @@
 (defn concat-2vecs [src_vec add_vec]
   (into [] (concat src_vec add_vec)))
 
-(defn extract-results-vec
-  ;; returns a vector
-  ""
-  [request_body]
-  (get (first (rest (rest request_body))) 1))
 
 ;; issue here is it APPEARS as if subsequent pages are bogus.
 ;; need to investigate further as I write the program to get
@@ -116,11 +63,38 @@
         ;;  (if (clojure.string/blank? token)
         ;;      (concat-2vecs vec (extract-results-vec request))
 
-(defn req-vector [radius lat lon]
-  (let [request (json/read-str (:body (places-req radius lat lon)))
+;;TODO UNTIL HERE
+
+(defn extract-raw-results-vec
+  "returns => vector
+  gets the body of the request from the json object the API returned
+  * helper function for get-request-vector"
+  [request_body]
+  (get (first (rest (rest request_body))) 1))
+
+(defn request-loc-data
+  "returns => str
+  The string it returns is a json object in string format. This is the initial
+  request to the google api. To get the data out of this raw request you need
+  to pass the result to extract-places-vec thusly:
+  (extract-places-vec (req))
+  * helper function for get-request-vector"
+  [radius lat lon]
+  (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
+              {:query-params {"location" (str lat "," lon)
+                              "radius" (str radius)
+                              "types" "restaurant"
+;; TODO define some env variable to eliminate path hardcoding
+                              "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
+
+(defn get-request-vector
+  "returns => vector
+  of all the results from the api"
+  [radius lat lon]
+  (let [request (json/read-str (:body (request-loc-data radius lat lon)))
         token (get request "next_page_token")
         status (get request "status")
-        results (extract-results-vec request)]
+        results (extract-raw-results-vec request)]
     (println "-status: " status)
     (println "token: " token "  tokenIsBlank: " (clojure.string/blank? token))
     (println "type info about extract-results-vec: " (type results))
@@ -134,3 +108,46 @@
 ;;                               (int 0)
 ;;                               initial_sleep_time))))
 ;;
+(defn create-place-map
+  "returns => map
+  operates on elements of vector from extract-places-vec to provide
+  map of relevant data for a given place"
+  [element]
+  (let [id (get element "id")
+        place_id (get element "place_id")
+        name (get element "name")
+        lat (get (get (get element "geometry") "location") "lat")
+        lng (get (get (get element "geometry") "location") "lng")
+        rating (get element "rating")]
+    (hash-map :id id :place_id place_id :name name :lat lat :lng lng :rating rating)))
+
+(defn extract-places-vec
+  "returns => vector
+  This function takes two arguments, the first is a vector from the req-vector fcn,
+  the second is an empty vector. Using the create-place-map fcn, it returns a vector
+  of maps, where each map has pertinent information on each place"
+  [vec acc_vec]
+  (if (empty? vec)
+    acc_vec
+    (recur (rest vec) (conj acc_vec (create-place-map (first vec))))))
+
+(defn extract-places-vec-stored
+  "returns => vector
+  wrapper for fcn extract-places-vec, returns stored query from file rather than
+  quierying google again."
+  []
+  (extract-places-vec
+   (json/read-str (slurp "src/pfchangsindex/raw-out.txt"))
+   (vector)))
+
+(defn get-places-vec
+ "returns => vector
+  To be precise it returns a vector where each element is a map representing
+  a place. If it is called with no args it returns stored data and if it is called
+  with arguments than it gets the places-vector for the given radius around the
+  given latitude and longitude."
+  ([]
+   (extract-places-vec-stored))
+  ([radius lat lon]
+    (extract-places-vec (get-request-vector radius lat lon) (vector))))
+
