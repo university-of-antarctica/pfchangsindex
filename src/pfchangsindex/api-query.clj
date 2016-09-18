@@ -1,10 +1,21 @@
-(ns pfchangsindex.data-fetcher
+(ns pfchangsindex.api-query
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]))
+
+(defn extract-raw-results-vec
+  "returns => vector
+  gets the body of the request from the json object the API returned
+  * helper function for get-request-vector"
+  [request_body]
+  (get (first (rest (rest request_body))) 1))
 
 
 ;;TODO figure out what to do with the code from here {{{
 (def initial_sleep_time 500)
+
+
+(defn concat-2vecs [src_vec add_vec]
+  (into [] (concat src_vec add_vec)))
 
 (defn places-re-req [token]
   "returns => str
@@ -13,10 +24,6 @@
   (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
               {:query-params {"key" (slurp "src/pfchangsindex/places-api-key.txt")
                               "pagetoken" token}}))
-
-(defn concat-2vecs [src_vec add_vec]
-  (into [] (concat src_vec add_vec)))
-
 
 ;; issue here is it APPEARS as if subsequent pages are bogus.
 ;; need to investigate further as I write the program to get
@@ -47,30 +54,25 @@
       (case status
         "OK" (get-subsq-pages-as-vecs
               (concat-2vecs
-               vec (extract-results-vec request))
+               vec (extract-raw-results-vec request))
               re-token (inc count) sleep_time)
-        "ZERO_RESULTS" (concat-2vecs vec (extract-results-vec request))
-        "OVER_QUERY_LIMIT" (concat-2vecs vec (extract-results-vec request))
+        "ZERO_RESULTS" (concat-2vecs vec (extract-raw-results-vec request))
+        "OVER_QUERY_LIMIT" (concat-2vecs vec (extract-raw-results-vec request))
         "REQUEST_DENIED" (get-subsq-pages-as-vecs
                           (concat-2vecs
-                           vec (extract-results-vec request))
+                           vec (extract-raw-results-vec request))
                           token (inc count) (+ sleep_time 200))
         "INVALID_REQUEST" (get-subsq-pages-as-vecs
                            (concat-2vecs
-                             vec (extract-results-vec request))
+                             vec (extract-raw-results-vec request))
                            token (inc count) (+ sleep_time 200)))
-        (concat-2vecs vec (extract-results-vec request)))))
+        (concat-2vecs vec (extract-raw-results-vec request)))))
         ;;  (if (clojure.string/blank? token)
         ;;      (concat-2vecs vec (extract-results-vec request))
 
+
 ;;TODO UNTIL HERE
 
-(defn extract-raw-results-vec
-  "returns => vector
-  gets the body of the request from the json object the API returned
-  * helper function for get-request-vector"
-  [request_body]
-  (get (first (rest (rest request_body))) 1))
 
 (defn request-loc-data
   "returns => str
@@ -87,6 +89,27 @@
 ;; TODO define some env variable to eliminate path hardcoding
                               "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
 
+;;TODO trash this function and turn get-request vector into a multiple
+;; arity fcn that can get the next page.
+(defn get-next-page
+  [prev-results token]
+  (Thread/sleep 5000)
+  (let [request (json/read-str (:body (places-re-req token)))
+        re-token (get request "next_page_token")
+        status (get request "status")
+        error (get request "error_message")
+        next-results (extract-raw-results-vec request)
+        full-results (concat prev-results next-results)]
+    (println "-status: " status)
+    (println "REQUEST: " request)
+    (println "token: " token "  tokenIsBlank: " (clojure.string/blank? re-token))
+    (if (clojure.string/blank? token)
+      full-results
+      (get-next-page full-results
+                     re-token))))
+
+;; TODO investigate how I'm storing the data, google has a nice structure,
+;; should I be wasting CPU cycles modifying it?
 (defn get-request-vector
   "returns => vector
   of all the results from the api"
@@ -95,19 +118,14 @@
         token (get request "next_page_token")
         status (get request "status")
         results (extract-raw-results-vec request)]
-    (println "-status: " status)
+    (println "status: " status)
+    (println "REQUEST: " request)
     (println "token: " token "  tokenIsBlank: " (clojure.string/blank? token))
-    (println "type info about extract-results-vec: " (type results))
-    results))
-;;    (if (clojure.string/blank? token)
-;;      ;; on true or false innermost statement, will return vector
-;;      ;;TODO undo this concat-2vecs fcn
-;;      results
-;;      (get-subsq-pages-as-vecs results
-;;                               token
-;;                               (int 0)
-;;                               initial_sleep_time))))
-;;
+    (if (clojure.string/blank? token)
+      results
+      (get-next-page results
+                     token))))
+
 (defn create-place-map
   "returns => map
   operates on elements of vector from extract-places-vec to provide
@@ -150,4 +168,3 @@
    (extract-places-vec-stored))
   ([radius lat lon]
     (extract-places-vec (get-request-vector radius lat lon) (vector))))
-
