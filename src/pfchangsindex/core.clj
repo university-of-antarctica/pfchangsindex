@@ -24,7 +24,7 @@
 
 (def avillePFC {:lat "35.48609758029149" :lon "-82.55266131970849"})
 (def ask-google true) ;; T queries google, F uses text file.
-(def radius "2000")
+(def radius "40000")
 
 ;; currently this spit is just here for testing purposes when I don't want to
 ;; waste google API calls. With ask-google set to false, when you define the
@@ -35,14 +35,14 @@
 ;; "src/pfchangsindex/raw-out.txt"
 ;;  (pfchangsindex.api-query/req-vector radius (:lat avillePFC) (:lon avillePFC)))
 
-(def places-vec
+(def places
   (if ask-google
-    (pfchangsindex.api-query/get-places-vec radius (:lat avillePFC) (:lon avillePFC))
-    (pfchangsindex.api-query/get-places-vec)))
+    (pfchangsindex.api-query/get-places radius (:lat avillePFC) (:lon avillePFC))
+    (pfchangsindex.api-query/get-places)))
 
-(println "the count is: " (count (pfchangsindex.api-query/get-places-vec radius (:lat avillePFC) (:lon avillePFC))))
+(println "the count is: " (count (first (rest (pfchangsindex.api-query/get-places radius (:lat avillePFC) (:lon avillePFC))))))
 
-(def aville-pfci (pfchangsindex.index-generator/gen-index places-vec))
+(def aville-pfci (pfchangsindex.index-generator/gen-index places))
 (println aville-pfci)
 
 (defn places-vec-report

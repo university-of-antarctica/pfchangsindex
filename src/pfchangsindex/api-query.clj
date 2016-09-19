@@ -3,7 +3,11 @@
             [clojure.data.json :as json]
             [clojure.walk :as walk]))
 
-(def default-slp 5000) ;; Google needs this many ms to activate a next_page_token
+;;TODO pretty solid chance it is a lot more trouble than it is worth
+;;     keeping a lot of this data in a vector. Should consider changing
+;;     to list when relevant.
+
+(def default-slp 2000) ;; Google needs this many ms to activate a next_page_token
 (def important-keys ["place_id" "name" "geometry" "rating"])
 
 (defn re-request-loc-data 
@@ -27,7 +31,7 @@
 ;; TODO define some env variable to eliminate path hardcoding
                               "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
 
-(defn extract-places-vec
+(defn extract-places
   "returns => vector
   Gets the keys we want in the vector we will be manipulating and storing in a db
   out of the results vector we get from the api."
@@ -38,59 +42,69 @@
     :rating
     (map #(walk/keywordize-keys %) (map #(select-keys % important-keys) places)))))
 
-;; TODO need to make get-next-request-vec and get-request-vec more dynamic so
-;; they can handle different behaviors from google's places API.
-(defn get-next-request-vector
-  "returns => vector
-  This function exists to help get-request-vector. The google places api limits the
+(defn response-handler
+  "returns => boolean
+  returns true if we should submit another query and false otherwise"
+  [status token]
+  (case status
+    "OK" (boolean token) ;; token will be nil if there is no next page
+    "ZERO_REQUEST" false
+    "OVER_QUERY_LIMIT" false
+    "REQUEST_DENIED" false
+    "INVALID_REQUEST" false))
+
+(defn get-next-request
+  "returns => '(int, vector)
+  This function exists to help get-request. The google places api limits the
   number or results it sends per request to 20. Google will return up to 60 results
   so they let you get the next two pages by submitting the page token from the prev
-  request (along with your key), this function allows us to ask for the next 2 pages."
-  [prev-results token default-slp]
+  request (along with your key), this function allows us to ask for the next 2 pages.
+  IFF the number of requests made is 3, then we need to indicate the more searches
+  need to be done in the area."
+  [prev-results token request-number]
   (Thread/sleep default-slp)
   (let [request (json/read-str (:body (re-request-loc-data token)))
         re-token (get request "next_page_token")
         status (get request "status")
-        next-results (extract-places-vec (get request "results"))
-        full-results (concat prev-results next-results)]
-    (if (clojure.string/blank? token)
-      full-results
-      (get-next-request-vector full-results
-                     re-token
-                     default-slp))))
+        next-results (extract-places (get request "results"))
+        full-results (vec (concat prev-results next-results))]
 
-(defn get-request-vector
-  "returns => vector
+    (if (response-handler status re-token)
+      (get-next-request full-results
+                               re-token
+                               (inc request-number))
+      (list request-number full-results))))
+
+(defn get-request
+  "returns => '(int, vector)
   of all the results from the api call with the given parameter"
   [radius lat lon]
   (let [request (json/read-str (:body (request-loc-data radius lat lon)))
         status (get request "status")
         token (get request "next_page_token")
-        results (extract-places-vec (get request "results"))]
-    (if (clojure.string/blank? token)
-      results
-      (get-next-request-vector results
-                            token
-                            default-slp))))
+        results (extract-places (get request "results"))
+        request-number 1]
+    (if (response-handler status token)
+      (get-next-request results
+                               token
+                               (inc request-number))
+      (list request-number results))))
 
-(defn extract-places-vec-stored
+(defn extract-places-stored
   "returns => vector
-  wrapper for fcn extract-places-vec, returns stored query from file rather than
+  wrapper for fcn extract-places, returns stored query from file rather than
   querying google again."
   []
-  (extract-places-vec
+  (extract-places
    (json/read-str (slurp "src/pfchangsindex/raw-out.txt"))))
 
-(defn get-places-vec
+(defn get-places
  "returns => vector
   To be precise it returns a vector where each element is a map representing
   a place. If it is called with no args it returns stored data and if it is called
   with arguments than it gets the places-vector for the given radius around the
   given latitude and longitude."
   ([]
-   (extract-places-vec-stored))
+   (extract-places-stored))
   ([radius lat lon]
-    (get-request-vector radius lat lon)))
-
-;;TODO change all names from *-vec once we know what we want the data to be and how to
-;; deal with it
+    (get-request radius lat lon)))
