@@ -7,15 +7,18 @@
   "returns => int
   Walks the vector until it finds the PF Changs, then returns that index, if
   PF Changs was not found it returns nil"
-  [restaurants rank]
+  [restaurants index]
   (if (empty? restaurants)
     nil
     (if (= (:name (first restaurants)) pfchangs)
-      rank
-      (recur (rest restaurants) (inc rank)))))
+      index
+      (recur (rest restaurants) (inc index)))))
 
 (defn gen-index
   "returns => int
   Returns the place that PF Changs occupies in the array."
   [restaurants]
-  (find-pfchangs (sort-by :rating > restaurants) 1))
+  ;; It is important that 0 is passed. PF Chang's element number is
+  ;; also the number of restaurants rated more highly than PF Chang's
+  ;; in the list.
+  (find-pfchangs (sort-by :rating > restaurants) 0))

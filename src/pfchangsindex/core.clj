@@ -5,7 +5,8 @@
 ;; 2. Pick a radius
 ;; 3. Get the rating of every restaurant within that radius
 ;; 4. Order the restaurants by rating.
-;; 5. The PF Chang's index for that area is the PF Chang's element number.
+;; 5. The PF Chang's index for that area is the PF Chang's element number which is
+;;    the number of restaurants rated more highly than PF Chang's.
 
 ;; It is an approximation of two important variables.
 ;; 1. The quality of the restaurants in a city.
@@ -22,8 +23,8 @@
 ;; https://developers.google.com/places/web-service/intro
 
 (def avillePFC {:lat "35.48609758029149" :lon "-82.55266131970849"})
-(def ask-google false) ;; T queries google, F uses text file.
-(def radius "1000")
+(def ask-google true) ;; T queries google, F uses text file.
+(def radius "2000")
 
 ;; currently this spit is just here for testing purposes when I don't want to
 ;; waste google API calls. With ask-google set to false, when you define the
@@ -39,7 +40,10 @@
     (pfchangsindex.api-query/get-places-vec radius (:lat avillePFC) (:lon avillePFC))
     (pfchangsindex.api-query/get-places-vec)))
 
-(def aville-pfci (pfchangsindex.index-generator/gen-index places-vec 0))
+(println "the count is: " (count (pfchangsindex.api-query/get-places-vec radius (:lat avillePFC) (:lon avillePFC))))
+
+(def aville-pfci (pfchangsindex.index-generator/gen-index places-vec))
+(println aville-pfci)
 
 (defn places-vec-report
   "=> prints a string
