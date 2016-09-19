@@ -7,10 +7,10 @@
 ;;     keeping a lot of this data in a vector. Should consider changing
 ;;     to list when relevant.
 
-(def default-slp 2000) ;; Google needs this many ms to activate a next_page_token
+(def default-slp 4000) ;; Google needs this many ms to activate a next_page_token
 (def important-keys ["place_id" "name" "geometry" "rating"])
 
-(defn re-request-loc-data 
+(defn re-request-loc-data
   "returns => str
   The string it returns is a json object in string format. This is the subsequent
   request to the google api IF there are additional pages"
@@ -36,7 +36,6 @@
   Gets the keys we want in the vector we will be manipulating and storing in a db
   out of the results vector we get from the api."
   [places]
-  ;;(filter "rating" (map #(select-keys % important-keys) vec)))
   (vec
    (filter
     :rating
@@ -71,8 +70,8 @@
 
     (if (response-handler status re-token)
       (get-next-request full-results
-                               re-token
-                               (inc request-number))
+                        re-token
+                        (inc request-number))
       (list request-number full-results))))
 
 (defn get-request
@@ -86,8 +85,8 @@
         request-number 1]
     (if (response-handler status token)
       (get-next-request results
-                               token
-                               (inc request-number))
+                        token
+                        (inc request-number))
       (list request-number results))))
 
 (defn extract-places-stored

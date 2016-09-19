@@ -1,9 +1,15 @@
 (ns pfchangsindex.core)
 
 ;; GLOBAL TODO
-;; 1. Create a PF Changs index that uses google place API to churn out an index
-;;    for the aville pf changs with a radius that returns < 60 but > 20 places,
-;;    (still  requiring me to figure out the multipe page bologna).
+;; 1. Write a new ns (geog.clj) that uses the api-query functionality to create
+;;    a proper set of all restaurants around the avillePFC. As the program stands
+;;    we are limited by the fact that radii that are too large mean that more than
+;;    60 restaurants (the amt. google limits you to) are within that area. To make
+;;    a legit PFC index we need to get the ratings of all the restaurants in a pre-
+;;    defined area (I'm arbitrarily leaning towards 3 miles) which means that geog.clj
+;;    will essentially be a wrapper around api-query.clj that extends the fcnality
+;;    of the google places API to getting a complete set of restaurants within a given
+;;    radius, not just "up to 60 results".
 ;; 2. use yelp too: https://www.yelp.com/developers/documentation/v2/overview
 
 ;; doc link for places api!!!
@@ -11,7 +17,8 @@
 
 (def avillePFC {:lat "35.48609758029149" :lon "-82.55266131970849"})
 (def ask-google true) ;; T queries google, F uses text file.
-(def radius "40000")
+;; 3 miles is 4828 , currently 1000 always contains the aville PFC
+(def radius "1000")
 
 ;; currently this spit is just here for testing purposes when I don't want to
 ;; waste google API calls. With ask-google set to false, when you define the
@@ -21,38 +28,23 @@
 ;; (spit
 ;; "src/pfchangsindex/raw-out.txt"
 ;;  (pfchangsindex.api-query/req-vector radius (:lat avillePFC) (:lon avillePFC)))
+(def places (first
+             (rest
+              (pfchangsindex.api-query/get-places
+               radius
+               (:lat avillePFC)
+               (:lon avillePFC)))))
 
-(def places
-  (if ask-google
-    (pfchangsindex.api-query/get-places radius (:lat avillePFC) (:lon avillePFC))
-    (pfchangsindex.api-query/get-places)))
+;;(def places-list (pfchangsindex.api-query/get-places
+;;              radius
+;;              (:lat avillePFC)
+;;              (:lon avillePFC)))
 
-(println "the count is: " (count (first (rest (pfchangsindex.api-query/get-places radius (:lat avillePFC) (:lon avillePFC))))))
+
+(println "number of places returned by query: " (count places))
 
 (def aville-pfci (pfchangsindex.index-generator/gen-index places))
-(println aville-pfci)
-
-(defn places-vec-report
-  "=> prints a string
-  eventually we are going to need to know 2 things from google, 1 if there
-  are additional pages of informationm and two if a query we did in a given
-  area returned any NEW results, this is why we would contrast a vector with
-  a set."
-  [x]
-  (let [vec_count (count x) set_count (count (into #{} x))]
-    (println "vec-count: " vec_count " set_count: " set_count)))
-
-(defn pprint-places-vec
-  "=> prints a string
-  easy way to pprint a sequence."
-  [x]
-  (dotimes [i (count x)] (clojure.pprint/pprint (get x i))))
-
-(places-vec-report places-vec)
-
-(pprint-places-vec places-vec)
-
-
+(println "the asheville PFC index for a radius of 1000m is: " aville-pfci)
 
 ;;(pfchangsindex.db/createdb)
 
