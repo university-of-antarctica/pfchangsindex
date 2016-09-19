@@ -1,10 +1,17 @@
 # pfchangsindex
 
+Instructions for calculating a PF Chang's Index.
+ 1. Find a PF Chang's (google places API) 
+ 2. Pick a radius
+ 3. Get the rating of every restaurant within that radius
+ 4. Order the restaurants by rating.
+ 5. The PF Chang's index for that area is the PF Chang's element number which is
+    the number of restaurants rated more highly than PF Chang's.
 
-- Need docker installed, also need to download datomic and
-  datomic cosole, put them in root of project, and edit the
-  build.sh file with proper names.
-- need java and maven?
+It is an approximation of two important variables.
+ 1. The quality of the restaurants in a city.
+ 2. The quality of the restaurant culture in a city. Or more directly,
+    whether or not the people in a given city have taste.
 
 ## Usage
 
