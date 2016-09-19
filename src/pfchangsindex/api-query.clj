@@ -1,6 +1,7 @@
 (ns pfchangsindex.api-query
   (:require [clj-http.client :as client]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [clojure.walk :as walk]))
 
 (def default-slp 5000) ;; Google needs this many ms to activate a next_page_token
 (def important-keys ["place_id" "name" "geometry" "rating"])
@@ -26,9 +27,21 @@
 ;; TODO define some env variable to eliminate path hardcoding
                               "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
 
-;; TODO need to tighten up get-next-request-vec and get-request-vec
+(defn extract-places-vec
+  "returns => vector
+  Gets the keys we want in the vector we will be manipulating and storing in a db
+  out of the results vector we get from the api."
+  [places]
+  ;;(filter "rating" (map #(select-keys % important-keys) vec)))
+  (vec
+   (filter
+    :rating
+    (map #(walk/keywordize-keys %) (map #(select-keys % important-keys) places)))))
+
+;; TODO need to make get-next-request-vec and get-request-vec more dynamic so
+;; they can handle different behaviors from google's places API.
 (defn get-next-request-vector
-  "returns => lazy-sequence
+  "returns => vector
   This function exists to help get-request-vector. The google places api limits the
   number or results it sends per request to 20. Google will return up to 60 results
   so they let you get the next two pages by submitting the page token from the prev
@@ -47,7 +60,7 @@
                      default-slp))))
 
 (defn get-request-vector
-  "returns => lazy sequence
+  "returns => vector
   of all the results from the api call with the given parameter"
   [radius lat lon]
   (let [request (json/read-str (:body (request-loc-data radius lat lon)))
@@ -60,15 +73,8 @@
                             token
                             default-slp))))
 
-(defn extract-places-vec
-  "returns => lazy-sequence
-  Gets the keys we want in the vector we will be manipulating and storing in a db
-  out of the results vector we get from the api."
-  [vec]
-  (map #(select-keys % important-keys) vec))
-
 (defn extract-places-vec-stored
-  "returns => lazy-sequence
+  "returns => vector
   wrapper for fcn extract-places-vec, returns stored query from file rather than
   querying google again."
   []
@@ -76,7 +82,7 @@
    (json/read-str (slurp "src/pfchangsindex/raw-out.txt"))))
 
 (defn get-places-vec
- "returns => lazy-sequence
+ "returns => vector
   To be precise it returns a vector where each element is a map representing
   a place. If it is called with no args it returns stored data and if it is called
   with arguments than it gets the places-vector for the given radius around the
@@ -85,3 +91,6 @@
    (extract-places-vec-stored))
   ([radius lat lon]
     (get-request-vector radius lat lon)))
+
+;;TODO change all names from *-vec once we know what we want the data to be and how to
+;; deal with it

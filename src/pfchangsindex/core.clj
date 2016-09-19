@@ -32,12 +32,14 @@
 
 ;; (spit
 ;; "src/pfchangsindex/raw-out.txt"
-;;  (pfchangsindex.geo/req-vector radius (:lat avillePFC) (:lon avillePFC)))
+;;  (pfchangsindex.api-query/req-vector radius (:lat avillePFC) (:lon avillePFC)))
 
 (def places-vec
   (if ask-google
-    (pfchangsindex.geo/get-places-vec radius (:lat avillePFC) (:lon avillePFC))
-    (pfchangsindex.geo/get-places-vec)))
+    (pfchangsindex.api-query/get-places-vec radius (:lat avillePFC) (:lon avillePFC))
+    (pfchangsindex.api-query/get-places-vec)))
+
+(def aville-pfci (pfchangsindex.index-generator/gen-index places-vec 0))
 
 (defn places-vec-report
   "=> prints a string
@@ -53,11 +55,14 @@
   "=> prints a string
   easy way to pprint a sequence."
   [x]
-  (dotimes [i 20] (clojure.pprint/pprint (get x i))))
+  (dotimes [i (count x)] (clojure.pprint/pprint (get x i))))
 
 (places-vec-report places-vec)
 
 (pprint-places-vec places-vec)
+
+
+
 ;;(pfchangsindex.db/createdb)
 
 ;;(for [place (req-vector)]
@@ -67,4 +72,3 @@
 
 ;;(pfchangsindex.db/query)
 ;;(pfchangsindex.db/del-db)
-
