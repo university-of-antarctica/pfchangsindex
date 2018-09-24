@@ -1,4 +1,9 @@
-(ns pfchangsindex.core)
+(ns pfchangsindex.core
+  (:require
+    [clojure.data.json :as json]
+    [clojure.java.io :as io]
+    [pfchangsindex.api_query :as api_query]
+    [pfchangsindex.index_generator :as index_generator]))
 
 ;; GLOBAL TODO
 ;; 1. Write a new ns (geog.clj) that uses the api-query functionality to create
@@ -20,6 +25,27 @@
 ;; 3 miles is 4828 , currently 1000 always contains the aville PFC
 (def radius "1000")
 
+(defn entity-map
+  [data k]
+  (reduce #(assoc %1 (:id %2) %2)
+          {}
+          (get data k)))
+
+(defn fetch-pfchangs
+  ;; function that returns map of all pfchangs
+  []
+  (let [location-data (-> (io/resource "locations.json")
+                          slurp
+                          json/read-str)]
+   location-data))
+
+(defn pprint-pfchangs
+  ;; function to pprint list of all the pfchangs
+  []
+  (clojure.pprint/pprint (fetch-pfchangs)))
+
+(pprint-pfchangs)
+
 ;; currently this spit is just here for testing purposes when I don't want to
 ;; waste google API calls. With ask-google set to false, when you define the
 ;; places-vec variable it calls extract-places-vec-stored which just slurps
@@ -30,7 +56,7 @@
 ;;  (pfchangsindex.api-query/req-vector radius (:lat avillePFC) (:lon avillePFC)))
 (def places (first
              (rest
-              (pfchangsindex.api-query/get-places
+              (api_query/get-places
                radius
                (:lat avillePFC)
                (:lon avillePFC)))))
@@ -43,7 +69,7 @@
 
 (println "number of places returned by query: " (count places))
 
-(def aville-pfci (pfchangsindex.index-generator/gen-index places))
+(def aville-pfci (index_generator/gen-index places))
 (println "the asheville PFC index for a radius of 1000m is: " aville-pfci)
 
 ;;(pfchangsindex.db/createdb)

@@ -1,4 +1,4 @@
-(ns pfchangsindex.index-generator)
+(ns pfchangsindex.index_generator)
 
 (def pfchangs "P.F. Chang's")
 

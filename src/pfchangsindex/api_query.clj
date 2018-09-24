@@ -1,4 +1,4 @@
-(ns pfchangsindex.api-query
+(ns pfchangsindex.api_query
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]
             [clojure.walk :as walk]))
