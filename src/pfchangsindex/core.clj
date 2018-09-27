@@ -20,7 +20,7 @@
 ;; doc link for places api!!!
 ;; https://developers.google.com/places/web-service/intro
 
-(def avillePFC {:lat "35.48609758029149" :lon "-82.55266131970849"})
+(def avillePFC {:lat "35.484" :lon "-82.556"})
 (def ask-google true) ;; T queries google, F uses text file.
 ;; 3 miles is 4828 , currently 1000 always contains the aville PFC
 (def radius "1000")
@@ -44,7 +44,7 @@
   []
   (clojure.pprint/pprint (fetch-pfchangs)))
 
-(pprint-pfchangs)
+;;(pprint-pfchangs)
 
 ;; currently this spit is just here for testing purposes when I don't want to
 ;; waste google API calls. With ask-google set to false, when you define the

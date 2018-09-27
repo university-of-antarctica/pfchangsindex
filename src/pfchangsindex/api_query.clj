@@ -1,109 +1,64 @@
 (ns pfchangsindex.api_query
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [clojure.java.io :as io]
+            [places.search :refer [nearby-search details]]))
 
-;;TODO pretty solid chance it is a lot more trouble than it is worth
-;;     keeping a lot of this data in a vector. Should consider changing
-;;     to list when relevant.
+(def place-data-to-extract [:place_id :name :geometry :rating :photos :price_level])
+(def goo-places-outfile "goog-places.out")
 
-(def default-slp 4000) ;; Google needs this many ms to activate a next_page_token
-(def important-keys ["place_id" "name" "geometry" "rating"])
+(defn get-key
+  ;; fetches google api key
+  []
+  (->
+    (io/resource "places-api-key.txt")
+    slurp ))
 
-(defn re-request-loc-data
-  "returns => str
-  The string it returns is a json object in string format. This is the subsequent
-  request to the google api IF there are additional pages"
-  [token]
-  (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
-              {:query-params {"key" (slurp "src/pfchangsindex/places-api-key.txt")
-                              "pagetoken" token}}))
+(defn extract-google-places-with-json
+  "json => vector
+  takes json output from google's places api and parses it into places map"
+  [json]
+  (extract-places json))
 
-(defn request-loc-data
-  "returns => str
-  The string it returns is a json object in string format. This is the initial
-  request to the google api."
-  [radius lat lon]
-  (client/get "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
-              {:query-params {"location" (str lat "," lon)
-                              "radius" (str radius)
-                              "types" "restaurant"
-;; TODO define some env variable to eliminate path hardcoding
-                              "key" (slurp "src/pfchangsindex/places-api-key.txt")}}))
+(defn extract-output-from-file
+  []
+  (-> (io/resource goo-places-outfile)
+      slurp
+      read-string))
 
-(defn extract-places
+(defn extract-places-json-from-file
+  "file in reousrce folder => json"
+  []
+  (-> extract-output-from-file
+      json/read-str))
+
+(defn my-nearby-search
+  ;; call google places api
+  [lng lat radius] ;;
+  (nearby-search (get-key)
+                 {:lng lng :lat lat}
+                 :radius radius
+                 :rankby "distance"
+                 :types ["restaurant" "food"]));; :keyword "restaurant"))
+
+(defn write-to-file
+  "writes output of function to file"
+  [search]
+  (spit (io/resource goo-places-outfile) (pr-str (search))))
+
+(write-to-file (fn []  (my-nearby-search "-82.556" "35.484" 8064)))
+
+(defn extract-place
   "returns => vector
   Gets the keys we want in the vector we will be manipulating and storing in a db
   out of the results vector we get from the api."
   [places]
-  (vec
-   (filter
-    :rating
-    (map #(walk/keywordize-keys %) (map #(select-keys % important-keys) places)))))
+  (map #(walk/keywordize-keys %) (map #(select-keys % place-data-to-extract) places)))
 
-(defn response-handler
-  "returns => boolean
-  returns true if we should submit another query and false otherwise"
-  [status token]
-  (case status
-    "OK" (boolean token) ;; token will be nil if there is no next page
-    "ZERO_REQUEST" false
-    "OVER_QUERY_LIMIT" false
-    "REQUEST_DENIED" false
-    "INVALID_REQUEST" false))
+(defn extract-keys
+  [item]
+  (map #(select-keys %1 place-data-to-extract) item))
 
-(defn get-next-request
-  "returns => '(int, vector)
-  This function exists to help get-request. The google places api limits the
-  number or results it sends per request to 20. Google will return up to 60 results
-  so they let you get the next two pages by submitting the page token from the prev
-  request (along with your key), this function allows us to ask for the next 2 pages.
-  IFF the number of requests made is 3, then we need to indicate the more searches
-  need to be done in the area."
-  [prev-results token request-number]
-  (Thread/sleep default-slp)
-  (let [request (json/read-str (:body (re-request-loc-data token)))
-        re-token (get request "next_page_token")
-        status (get request "status")
-        next-results (extract-places (get request "results"))
-        full-results (vec (concat prev-results next-results))]
-
-    (if (response-handler status re-token)
-      (get-next-request full-results
-                        re-token
-                        (inc request-number))
-      (list request-number full-results))))
-
-(defn get-request
-  "returns => '(int, vector)
-  of all the results from the api call with the given parameter"
-  [radius lat lon]
-  (let [request (json/read-str (:body (request-loc-data radius lat lon)))
-        status (get request "status")
-        token (get request "next_page_token")
-        results (extract-places (get request "results"))
-        request-number 1]
-    (if (response-handler status token)
-      (get-next-request results
-                        token
-                        (inc request-number))
-      (list request-number results))))
-
-(defn extract-places-stored
-  "returns => vector
-  wrapper for fcn extract-places, returns stored query from file rather than
-  querying google again."
-  []
-  (extract-places
-   (json/read-str (slurp "src/pfchangsindex/raw-out.txt"))))
-
-(defn get-places
- "returns => vector
-  To be precise it returns a vector where each element is a map representing
-  a place. If it is called with no args it returns stored data and if it is called
-  with arguments than it gets the places-vector for the given radius around the
-  given latitude and longitude."
-  ([]
-   (extract-places-stored))
-  ([radius lat lon]
-    (get-request radius lat lon)))
+(clojure.pprint/pprint (first (extract-output-from-file)) )
+(extract-keys (extract-output-from-file))

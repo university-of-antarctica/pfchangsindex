@@ -7,7 +7,7 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
-src/pfchangsindex/places-api-key.txt
+resources/places-api-key.txt
 places-req-out.txt
 places-req-out-pretty.txt
 datomic-console-0.1.206*
@@ -23,4 +23,4 @@ data/seattle-schema.edn
 data/seattle-schema.edn.bak
 raw-out.txt
 raw-vec.txt
-
+Session.vim

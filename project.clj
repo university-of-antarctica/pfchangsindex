@@ -9,4 +9,5 @@
                  [compojure "1.4.0"]
                  [hiccup "1.0.5"]
                  [clj-http "3.1.0"]
-                 [org.clojure/data.json "0.2.6"]])
+                 [org.clojure/data.json "0.2.6"]
+                 [places "0.2.0"]])
