@@ -21,7 +21,7 @@
   [json]
   (extract-places json))
 
-(defn extract-output-from-file
+(defn get-stored-place-data
   []
   (-> (io/resource goo-places-outfile)
       slurp
@@ -30,7 +30,7 @@
 (defn extract-places-json-from-file
   "file in reousrce folder => json"
   []
-  (-> extract-output-from-file
+  (-> get-stored-place-data
       json/read-str))
 
 (defn my-nearby-search
@@ -49,16 +49,4 @@
 
 (write-to-file (fn []  (my-nearby-search "-82.556" "35.484" 8064)))
 
-(defn extract-place
-  "returns => vector
-  Gets the keys we want in the vector we will be manipulating and storing in a db
-  out of the results vector we get from the api."
-  [places]
-  (map #(walk/keywordize-keys %) (map #(select-keys % place-data-to-extract) places)))
-
-(defn extract-keys
-  [item]
-  (map #(select-keys %1 place-data-to-extract) item))
-
-(clojure.pprint/pprint (first (extract-output-from-file)) )
-(extract-keys (extract-output-from-file))
+(provider/extract-keys (get-stored-place-data) place-data-to-extract)

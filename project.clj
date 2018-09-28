@@ -10,4 +10,5 @@
                  [hiccup "1.0.5"]
                  [clj-http "3.1.0"]
                  [org.clojure/data.json "0.2.6"]
-                 [places "0.2.0"]])
+                 [places "0.2.0"]
+                 [geocoder-clj "0.2.6"]])
