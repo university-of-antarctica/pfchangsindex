@@ -24,3 +24,4 @@ data/seattle-schema.edn.bak
 raw-out.txt
 raw-vec.txt
 Session.vim
+**/*.out

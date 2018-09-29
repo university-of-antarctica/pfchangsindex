@@ -18,3 +18,24 @@
   [item keyvec]
   (map #(select-keys %1 keyvec) item))
 
+(defn write-to-file
+  "Writes output of function to file"
+  [filename outputting]
+  (spit (io/resource filename) (pr-str (outputting))))
+
+(defn get-key
+  "Fetches google api key."
+  []
+  (->
+    (io/resource "places-api-key.txt")
+    slurp))
+
+(defn get-stored-data
+  [filename]
+  (-> (io/resource filename)
+      slurp
+      read-string))
+
+
+
+
