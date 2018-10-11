@@ -1,12 +1,9 @@
 (ns pfchangsindex.pfchangs_provider
     (:require
       [geocoder.geonames :as geonames]
-      [pfchangsindex.resource_provider :as provider]
-      [pfchangsindex.geocoding :as geocode]))
+      [pfchangsindex.resource_provider :as provider]))
 
 (def pfchangs-location-data "locations.json")
-
-(type get-pfchangs-json)
 
 (defn fetch-pfchangs
   ;; function that returns map of all pfchangs
@@ -40,5 +37,5 @@
           rest
           first))))
 
-(println (geonames/geocode-address (first (extract-pfchangs-address-vec))) )
-(geonames/geocode-address "Senefelderstraße 24, 10437 Berlin")
+(type (first (extract-pfchangs-address-vec)))
+(first (extract-pfchangs-address-vec))

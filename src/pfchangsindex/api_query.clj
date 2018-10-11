@@ -7,6 +7,7 @@
             [places.search :refer [nearby-search details]]))
 
 (def goo-places-outfile "goog-places.out")
+
 (def place-data-to-extract
   [:place_id :name :geometry :rating :photos :price_level])
 (def nearbysearch-endpoint
