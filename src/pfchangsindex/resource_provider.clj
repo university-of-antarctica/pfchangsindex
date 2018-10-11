@@ -35,7 +35,3 @@
   (-> (io/resource filename)
       slurp
       read-string))
-
-
-
-

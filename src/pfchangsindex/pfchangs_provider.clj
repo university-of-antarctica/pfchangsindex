@@ -37,5 +37,5 @@
           rest
           first))))
 
-(type (first (extract-pfchangs-address-vec)))
-(first (extract-pfchangs-address-vec))
+(def pfchangs (extract-pfchangs-address-vec))
+(def first-pfchang (first (extract-pfchangs-address-vec)))

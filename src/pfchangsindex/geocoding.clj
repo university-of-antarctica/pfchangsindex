@@ -6,15 +6,18 @@
       [pfchangsindex.pfchangs_provider :as pfchangs]
       [pfchangsindex.api_query :as api_query]))
 
-(def necessary-request-data [:results :status])
+(def necessary-response-data [:results :status])
 (def geocode-endpoint
   "https://maps.googleapis.com/maps/api/geocode/json?")
 
-(defn req-to-map
-  [req]
-  (provider/extract-keys req necessary-request-data))
+(defn get-necessary-data-from-res
+  "Take raw res from api and get keywordized map of relevant data."
+  [res]
+  (let [res-as-map (clojure.walk/keywordize-keys res)]
+    (select-keys res-as-map necessary-response-data)))
 
 (defn raw-req
+  "Issue req to given geocode endpoint."
   [address]
   (api_query/issue-request geocode-endpoint {:address address}))
 
@@ -24,9 +27,9 @@
   (https://developers.google.com/maps/documentation/geocoding/intro)
   and returns coordinates."
   [address]
-  (let [req (raw-req address)
-        request-map (req-to-map req)]
-    request-map))
+  (let [res (raw-req address)
+        res-map (get-necessary-data-from-res res)]
+    res-map))
 
 (defn get-key-from-seq
   "Given an arbitrary seq, traverse until value with given key appears"
@@ -51,35 +54,22 @@
         lat-lng-map (get-lat-lng-from-seq geocode-data)]
     lat-lng-map))
 
-
 (def geocoding-out "geocode-sample.out")
 (def sample-address "sample-address.out")
-(def a-req (select-keys (clojure.walk/keywordize-keys (provider/get-stored-data geocoding-out)) necessary-request-data))
-(def pf-addr (first (pfchangs/extract-pfchangs-address-vec)))
-;;(get-geocode-data-with-address pf-addr)
-;;(println (get-lat-lng-from-address pf-addr))
-(println (get-lat-lng-from-seq pf-addr))
+(def sample-raw-res (select-keys
+             (clojure.walk/keywordize-keys
+               (provider/get-stored-data geocoding-out))
+             necessary-response-data))
 
-;;(println (get-lat-lng-from-seq a-req))
-;;(println (get-key-from-seq :lng a-req))
-(println a-req)
+(def sample-pf-addr-lat-lng
+  (get-lat-lng-from-address pfchangs/first-pfchang))
 
-(get-lat-lng-from-seq a-req)
+(println sample-pf-addr-lat-lng)
 
-(comment write-address-to-file
- (provider/write-to-file
-    geocoding-out
-    (fn []
-      (api_query/issue-request
-        geocode-endpoint
-        (provider/get-stored-data sample-address)))))
-
-(comment
+(comment "sample reads from file."
   (select-keys
     (clojure.walk/keywordize-keys (provider/get-stored-data geocoding-out) )
-    necessary-request-data)
+    necessary-response-data)
   (select-keys
     (get-geocode-data-with-address (first (pfchangs/extract-pfchangs-address-vec)))
-    necessary-request-data))
-
-
+    necessary-response-data))
