@@ -38,4 +38,5 @@
           first))))
 
 (def pfchangs (extract-pfchangs-address-vec))
-(def first-pfchang (first (extract-pfchangs-address-vec)))
+(def first-pfchang (first pfchangs))
+(println first-pfchang)
