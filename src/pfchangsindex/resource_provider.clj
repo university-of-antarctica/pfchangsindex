@@ -23,6 +23,10 @@
   [filename outputting]
   (spit (io/resource filename) (pr-str (outputting))))
 
+(defn write-map-to-edn
+  [filename my-map]
+  (spit (io/resource filename (prn-str my-map))))
+
 (defn get-key
   "Fetches google api key."
   []

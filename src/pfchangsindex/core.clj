@@ -4,9 +4,11 @@
     [pfchangsindex.index_generator :as index]
     [pfchangsindex.resource_provider :as provider]
     [pfchangsindex.pfchangs_provider :as pfchangs]
-    [pfchangsindex.geocoding :as geo]))
+    [pfchangsindex.geocoding :as geo]
+    [clojure.edn :as edn]))
 
 (def all-pfcs-region-data-outfile "all-pfcs-region-data.out")
+(def all-pfcs-region-data-edn "all-pfcs-region-data.edn")
 
 (defn get-pfc-latlngs
   []
@@ -45,4 +47,26 @@
 ;;(clojure.pprint/pprint (get-a-pfc-latlng))
 ;;(get-all-pfchangs-regions 1024)
 
-;;(def raw-pfc-regions (provider/get-stored-data all-pfcs-region-data-outfile))
+(def raw-pfc-regions (provider/get-stored-data all-pfcs-region-data-outfile))
+
+
+(provider/write-map-to-edn
+ all-pfcs-region-data-edn
+ (index/gen-index (first raw-pfc-regions)))
+
+(provider/write-map-to-edn
+ all-pfcs-region-data-edn
+ (index/gen-pf-changs-edn raw-pfc-regions))
+
+(count (first raw-pfc-regions))
+(index/gen-index (first raw-pfc-regions))
+
+(provider/write-map-to-edn
+ all-pfcs-region-data-edn
+  (index/build-edn-data
+  (first raw-pfc-regions)
+  {:regions '[] :restaurants '[]}))
+
+(sort-by :rating > (first raw-pfc-regions))
+
+(first (list))
