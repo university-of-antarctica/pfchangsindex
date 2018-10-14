@@ -26,7 +26,7 @@
      (if (pfchangs? restaurant)
          ;; stamp with pf_changs_index
        {:pfchangs_index index
-        :id (.hashCode (apply str "region-" (:place_id restaurant)))
+        :id (str (.hashCode (apply str "region-" (:place_id restaurant))))
         :pfchangs_place_id (:place_id restaurant)}
        (recur other-restaurants (inc index))))))
 
@@ -47,7 +47,7 @@
 (defn decorate-restaurant
   [restaurant region-id]
   (let [is-pf (pfchangs? restaurant)]
-    (assoc (assoc (assoc restaurant :id (.hashCode (:place_id restaurant))) :is_pf_changs is-pf) regions-key #{region-id})))
+    (assoc (assoc (assoc restaurant :id (str (.hashCode (:place_id restaurant)))) :is_pf_changs is-pf) regions-key #{region-id})))
 
 (defn build-edn-data
   [restaurant-map restaurants]
