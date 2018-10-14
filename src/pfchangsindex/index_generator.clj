@@ -1,7 +1,7 @@
 (ns pfchangsindex.index_generator)
 
 (def pfchangs-name "P.F. Chang's")
-(def pfchangs-index :pf-changs-index)
+(def pfchangs-index :pfchangs_index)
 (def regions-key :regions)
 (def rstrnt-key :restaurants)
 (def base-edn-map {regions-key '[] rstrnt-key '[]})
@@ -24,10 +24,10 @@
     (if (nil? restaurant)
      '{}
      (if (pfchangs? restaurant)
-         ;; stamp with pf-changs-index
-       {:pfchangs-index index
-        :id (apply str "region-" (:place_id restaurant))
-        :pfchangs-place-id (:place_id restaurant)}
+         ;; stamp with pf_changs_index
+       {:pfchangs_index index
+        :id (.hashCode (apply str "region-" (:place_id restaurant)))
+        :pfchangs_place_id (:place_id restaurant)}
        (recur other-restaurants (inc index))))))
 
 (defn gen-index
@@ -47,7 +47,7 @@
 (defn decorate-restaurant
   [restaurant region-id]
   (let [is-pf (pfchangs? restaurant)]
-    (assoc (assoc restaurant :is-pf-changs is-pf) regions-key #{region-id})))
+    (assoc (assoc (assoc restaurant :id (.hashCode (:place_id restaurant))) :is_pf_changs is-pf) regions-key #{region-id})))
 
 (defn build-edn-data
   [restaurant-map restaurants]
