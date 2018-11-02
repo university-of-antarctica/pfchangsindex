@@ -54,21 +54,22 @@
         lat-lng-map (get-lat-lng-from-seq geocode-data)]
     lat-lng-map))
 
-(def geocoding-out "geocode-sample.out")
-(def sample-address "sample-address.out")
-(def sample-raw-res (select-keys
-             (clojure.walk/keywordize-keys
-               (provider/get-stored-data geocoding-out))
-             necessary-response-data))
+(def geocoding-out "db/geocode-sample.out")
+(def sample-address "db/sample-address.out")
+(comment (def sample-raw-res
+   (select-keys
+    (clojure.walk/keywordize-keys
+     (provider/get-serialized-data geocoding-out))
+    necessary-response-data)))
 
-(def sample-pf-addr-lat-lng
-  (get-lat-lng-from-address pfchangs/first-pfchang))
+(comment (def sample-pf-addr-lat-lng
+   (get-lat-lng-from-address pfchangs/first-pfchang)))
 
-(println sample-pf-addr-lat-lng)
+(comment (println sample-pf-addr-lat-lng))
 
 (comment "sample reads from file."
   (select-keys
-    (clojure.walk/keywordize-keys (provider/get-stored-data geocoding-out) )
+    (clojure.walk/keywordize-keys (provider/get-serialized-data geocoding-out) )
     necessary-response-data)
   (select-keys
     (get-geocode-data-with-address (first (pfchangs/extract-pfchangs-address-vec)))

@@ -6,7 +6,8 @@
 
 (defn create-file
   [filename]
-  (.createNewFile (File. filename)))
+  (let [f (println "filename: " filename)]
+    (.createNewFile (File. filename))))
 
 (defn get-serialized-data
   "Reads from filename data that can be deserialized. If there
@@ -21,24 +22,34 @@
 (defn get-json
   "Read json from filename."
   [filename]
-  (-> (io/resource filename)
-      slurp
-      json/read-str))
+  (let [f (println "getting file: " filename)]
+    (-> (io/resource filename)
+       slurp
+       json/read-str)))
 
 (defn extract-keys
   "Takes a map and extracts the keys in keyvec from it."
   [item keyvec]
   (map #(select-keys %1 keyvec) item))
 
+(defn ensure-file-exists
+  [filename]
+  (let [resource (io/resource filename)]
+    (if (and (not (nil? resource)) (.exists (io/file resource)))
+      (io/resource filename)
+      (do
+        (create-file filename)
+        (io/resource filename)))))
+
 (defn write-to-file
   "Writes output of function to file"
   [filename outputting & opts]
-  (spit (io/resource filename) (pr-str (outputting))))
+  (spit (ensure-file-exists filename) (pr-str (outputting))))
 
 (defn write-map-to-edn
   "Writes to filename my-map as a serialized data structure."
   [filename my-map]
-  (spit (io/resource filename) (prn-str my-map)))
+  (spit (ensure-file-exists filename) (prn-str my-map)))
 
 (defn get-cached-data-or-make-it
   [caching-fn possibly-cached-data]
@@ -49,32 +60,32 @@
         my-map)
         (get-serialized-data possibly-cached-data))))
 
+(defn cache-in-dir
+  [dir caching-fn possibly-cached-data]
+  (let [filename (if (.equals "" dir)
+                   (str possibly-cached-data)
+                   (str dir "/" possibly-cached-data))
+        resource (ensure-file-exists filename)]
+     (get-cached-data-or-make-it caching-fn filename)))
+
 (defn cache
   [caching-fn possibly-cached-data]
-  (let [filename (str "cache/" possibly-cached-data)
-        resource (io/resource filename)]
-    (if (and (not (nil? resource)) (.exists (io/file resource)))
-     (get-cached-data-or-make-it caching-fn filename)
-     (do
-       (create-file filename)
-       (get-cached-data-or-make-it caching-fn filename)))))
+    (let [p (println "call to cache: " possibly-cached-data)]
+   (cache-in-dir "cache" caching-fn possibly-cached-data)))
 
-(comment "test to append stuff"
-  (spit (io/resource "myfile")
-    (prn-str {:alpha "bravo" :charlie "delta"})
-    :append true))
+(defn db
+  [caching-fn possibly-cached-data]
+  (let [p (println "call to db: " possibly-cached-data)]
+    (cache-in-dir "db" caching-fn possibly-cached-data)))
 
-;;(spit (io/resource "meowmoewbealkdjfd") "meowmeowmeowmewow99199131")
+(defn from-root
+  [caching-fn possibly-cached-data]
+  (let [p (println "call to root dir: " possibly-cached-data)]
+    (cache-in-dir "" caching-fn possibly-cached-data)))
 
 (defn get-key
   "Fetches google api key."
   []
   (->
-    (io/resource "places-api-key.txt")
+    (ensure-file-exists "places-api-key.txt")
     slurp))
-
-(defn get-stored-data
-  [filename]
-  (-> (io/resource filename)
-      slurp
-      read-string))

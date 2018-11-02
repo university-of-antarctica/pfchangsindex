@@ -3,7 +3,7 @@
       [geocoder.geonames :as geonames]
       [pfchangsindex.resource_provider :as provider]))
 
-(def pfchangs-location-data "locations.json")
+  (def pfchangs-location-data "resources/db/locations.json")
 
 (defn fetch-pfchangs
   ;; function that returns map of all pfchangs
@@ -37,6 +37,6 @@
           rest
           first))))
 
-(def pfchangs (extract-pfchangs-address-vec))
-(def first-pfchang (first pfchangs))
-(println first-pfchang)
+;;(def pfchangs (extract-pfchangs-address-vec))
+;;(def first-pfchang (first pfchangs))
+;;(println first-pfchang)

@@ -6,7 +6,7 @@
             [clojure.java.io :as io]
             [places.search :refer [nearby-search details]]))
 
-(def goo-places-outfile "goog-places.out")
+(def google-places-outfile "goog-places.out")
 
 (def place-data-to-extract
   [:place_id :name :geometry :rating :photos :price_level])
@@ -33,9 +33,10 @@
                  :types ["restaurant" "food"]));; :keyword "restaurant"))
 
 (comment (provider/write-to-file
-    goo-places-outfile
+    google-places-outfile
     (fn []  (my-nearby-search "-82.556" "35.484" 8064))) )
 
+(comment "gets relevant data from cached places query"
 (provider/extract-keys
-  (provider/get-stored-data goo-places-outfile)
-  place-data-to-extract)
+  (provider/get-serialized-data google-places-outfile)
+  place-data-to-extract))
