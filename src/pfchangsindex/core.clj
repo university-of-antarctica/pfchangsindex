@@ -15,6 +15,8 @@
 (def all-pfcs-region-data-edn "all-pfcs-region-data.edn")
 (def transduce-pfcs-region-data-edn "transduce-pfcs-region-data.edn")
 (def region-lookup-cache-suffix ".cache")
+(def lat-lookup-cache-prefix "lat")
+(def lng-lookup-cache-prefix "lng")
 
 (defn get-all-pfc-latlngs
   []
@@ -39,8 +41,9 @@
     (api/my-nearby-search (:lng latlng) (:lat latlng) radius)
     api/place-data-to-extract)
    (let [filename (apply str
-                    (:lng latlng) (:lat latlng) radius
-                    region-lookup-cache-suffix)
+                         lat-lookup-cache-prefix (:lat latlng)
+                         lng-lookup-cache-prefix (:lng latlng)
+                         radius region-lookup-cache-suffix)
          a (println "filename : " filename)]
      filename)))
 
@@ -53,62 +56,66 @@
   (let [a-region (partial a-region radius)]
     (map a-region latlngs)))
 
-;;(def raw-pfc-regions (provider/get-deserialized-data all-pfcs-region-data-outfile))
-;;(count (first raw-pfc-regions))
+(defn get-pf-changs-index
+  [n]
+  (conj
+   '()
+   (reduce
+    index/build-pfchangs-schema
+    index/base-edn-map
+    (map (partial a-region 1024) (take n (get-all-pfc-latlngs))))))
+
+(defn -main [n]
+  (provider/db
+    #(get-pf-changs-index (Integer/parseInt n))
+    (apply str n all-pfcs-region-data-edn)))
 
 (comment "gets 1 regions pf changs index"
-  (provider/write-map-to-edn
-  all-pfcs-region-data-edn
-    (index/build-edn-data
-    (first raw-pfc-regions)
-    {:regions '[] :restaurants '[]})))
+         (provider/write-map-to-edn
+          all-pfcs-region-data-edn
+          (index/build-edn-data
+           (first raw-pfc-regions)
+           {:regions '[] :restaurants '[]})))
 
 (comment "failed attempt at reduction, not properly reducing because our coll is a coll of colls"
          (provider/write-map-to-edn
-  "myfile"
-  (reduce
-   (fn [val coll]
-     (try
-       (index/build-edn-data val coll)
-       (catch Exception e (println "caught exception: " (.getMessage e)))
-       (finally val)))
-   {:regions '[] :restaurants '[]}
-   (get-pfc-regions 1024 (get-n-pfc-latlngs 10)))))
+          "myfile"
+          (reduce
+           (fn [val coll]
+             (try
+               (index/build-edn-data val coll)
+               (catch Exception e (println "caught exception: " (.getMessage e)))
+               (finally val)))
+           {:regions '[] :restaurants '[]}
+           (get-pfc-regions 1024 (get-n-pfc-latlngs 10)))))
 
-(def xform
-  (comp
-   (map (partial a-region 1024))))
+(comment "failed attempt"
+         (def xform
+           (comp
+            (map (partial a-region 1024))))
+         (defn generate-pfc-edn-for-n-latlngs
+           [n]
+           (provider/from-root
+            #(transduce xform (completing index/build-pfchangs-schema)
+                        index/base-edn-map
+                        (take n (get-all-pfc-latlngs)))
+            transduce-pfcs-region-data-edn)))
 
-(defn generate-pfc-edn-for-n-latlngs
-  [n]
-  (provider/from-root
-  #(transduce xform (completing index/build-pfchangs-schema)
-               index/base-edn-map
-               (take n (get-all-pfc-latlngs)))
-   transduce-pfcs-region-data-edn))
-
-;;(generate-pfc-edn-for-n-latlngs 10)
-
-;;(clojure.pprint/pprint (take 4 (get-all-pfc-latlngs)))
-
-(defn get-tha-changs
-  [n]
-  (reduce
-   index/build-pfchangs-schema
-   index/base-edn-map
-   (map (partial a-region 1024) (take n (get-all-pfc-latlngs)))))
-
-;;(println "placeid: " (:pfchangs_place_id (first (:regions (get-tha-changs 1)))))
-
-;;(provider/from-root #(get-tha-changs 1) "rootietootie")
-
-(comment
-(def xf
-   (comp
-    (map inc)
-    (filter odd?)))
-(transduce xf + 0 (range 5)))
-
-(defn -main [n]
-  (clojure.pprint/pprint (get-tha-changs (Integer/parseInt n))))
-
+(comment "also nope"
+  (defn get-region
+    [fn lat-lng]
+      ((partial fn 1024) lat-lng))
+  (defn get-first-pfchangs-region
+    []
+    (a-region 1024 (first (get-all-pfc-latlngs))))
+  (transduce
+  (map (partial get-region a-region))
+  index/build-pfchangs-schema
+  index/base-edn-map
+  (take 1 (get-all-pfc-latlngs))))
+  (comment
+  (def xf
+    (comp
+      (map inc)
+      (filter odd?)))
+  (transduce xf + 0 (range 5)))

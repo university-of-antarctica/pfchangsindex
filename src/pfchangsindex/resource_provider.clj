@@ -5,9 +5,19 @@
   (:import (java.io File)))
 
 (defn create-file
-  [filename]
-  (let [f (println "filename: " filename)]
-    (.createNewFile (File. filename))))
+  [filename dir basefile]
+    (try
+      (let [
+            parent-dir (io/resource dir)
+            parent-path (.getFile parent-dir)
+            filename (apply str parent-path "/" basefile)
+            printfilename (println "create-file w/ filename: " filename)
+            ]
+        (.createNewFile (File. filename)))
+      (catch Exception e (do
+                           (println "caught ex: " (.getMessage e))
+                           (clojure.pprint/pprint (.getStackTrace e))))
+      (finally (.exists (File. filename)))))
 
 (defn get-serialized-data
   "Reads from filename data that can be deserialized. If there
@@ -33,13 +43,14 @@
   (map #(select-keys %1 keyvec) item))
 
 (defn ensure-file-exists
-  [filename]
+  [filename dir basefile]
   (let [resource (io/resource filename)]
     (if (and (not (nil? resource)) (.exists (io/file resource)))
       (io/resource filename)
       (do
-        (create-file filename)
-        (io/resource filename)))))
+        (if (create-file filename dir basefile)
+          (io/resource filename)
+          (throw (RuntimeException. "Couldn't create file?")))))))
 
 (defn write-to-file
   "Writes output of function to file"
@@ -62,10 +73,12 @@
 
 (defn cache-in-dir
   [dir caching-fn possibly-cached-data]
-  (let [filename (if (.equals "" dir)
+  (let [blank-dir? (.equals "" dir)
+        filename (if blank-dir?
                    (str possibly-cached-data)
                    (str dir "/" possibly-cached-data))
-        resource (ensure-file-exists filename)]
+        pr (println "cache-in-dir, blank-dir? : " blank-dir? ", dir: " dir ", filename: " filename)
+        resource (ensure-file-exists filename dir possibly-cached-data)]
      (get-cached-data-or-make-it caching-fn filename)))
 
 (defn cache

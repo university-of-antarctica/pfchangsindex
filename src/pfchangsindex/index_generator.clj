@@ -2,22 +2,23 @@
 
 (def pfchangs-regex #"(?i)p.?f.? ?chang'?s")
 (def pfchangs-index :pfchangs_index)
+(def pfchangs-place-id-key :pfchangs_place_id)
 (def regions-key :regions)
+(def rating-key :rating)
 (def rstrnt-key :restaurants)
 (def base-edn-map {regions-key '[] rstrnt-key '[]})
 
+(defn get-positive-hash
+  [in-str]
+  (bit-and (.hashCode in-str) 0xFFFFFFF))
+
 (defn pfchangs?
   [restaurant]
-  (let [name (:name restaurant)
-        p (clojure.pprint/pprint restaurant)
-        ty (println "type: " (type restaurant))]
+  (let [name (:name restaurant)]
    (if (nil? name)
     (throw (Exception. (str "why was the name nil")))
     (boolean (re-find pfchangs-regex name)))))
 
-;;(println " found: " (boolean (re-find #"(?i)p.?f.? ?chang'?s" "PFchang's")))
-
-;;(println " found: " (boolean (re-find #"(?i)p.?f.? ?chang'?s" nil)))
 ;;TODO is there a better return value for failure?
 (defn find-pfchangs
   "returns => int
@@ -31,9 +32,19 @@
      (if (pfchangs? restaurant)
          ;; stamp with pf_changs_index
        {:pfchangs_index index
-        :id (str (.hashCode (apply str "region-" (:place_id restaurant))))
-        :pfchangs_place_id (:place_id restaurant)}
+        :id (str (get-positive-hash
+                  (apply str "region-" (:place_id restaurant))))
+        pfchangs-place-id-key (:place_id restaurant)}
        (recur other-restaurants (inc index))))))
+
+(defn restaurants-lack-rating?
+  [restaurants]
+  (let [r (first restaurants)]
+    (if (nil? r)
+      true
+      (if (nil? (rating-key r))
+        false
+        (recur (rest restaurants))))))
 
 (defn gen-index
   "returns => int OR nil
@@ -43,24 +54,23 @@
   ;; It is important that 0 is passed. PF Chang's element number is
   ;; also the number of restaurants rated more highly than PF Chang's
   ;; in the list.
-  (let [restaurants (try
-                      (sort-by :rating > restaurants)
-                      (catch Exception e (str "caught exception: " (.getMessage e)))
+  (let [restaurants (filter #(contains? % rating-key) restaurants)
+        restaurants (try
+                      (sort-by rating-key > restaurants)
+                      (catch Exception e
+                        (str "caught exception: "
+                            (.getMessage e)))
                       (finally restaurants))]
-    (let [idx (find-pfchangs restaurants 0)
-          id (:pfchangs_place_id idx)]
-      (if (nil? id)
-        (throw (RuntimeException. "Found no pf changs!"))
-        idx))))
+     (let [idx (find-pfchangs restaurants 0)
+           id (pfchangs-place-id-key idx)]
+       (if (nil? id)
+         (throw (RuntimeException. "Found no pf changs!"))
+         idx))))
 
 (defn decorate-restaurant
   [restaurant region-id]
-  (let [restaurant (clojure.walk/keywordize-keys restaurant)
-        is-pf (pfchangs? restaurant)
-        p (println "ABOUT TO PRINT RESTAURANT" (:place_id restaurant))
-        prest (clojure.pprint/pprint restaurant)
-        p (println "DONE PRINT RESTAURANT" (:place_id restaurant))
-        pf-id (str (.hashCode (:place_id restaurant)))
+  (let [is-pf (pfchangs? restaurant)
+        pf-id (str (get-positive-hash (:place_id restaurant)))
         new-restaurant-data {:id pf-id
                         regions-key #{region-id}
                         :is_pf_changs is-pf}]
@@ -71,8 +81,7 @@
   (loop [restaurant-map restaurant-map
          restaurants restaurants
          count 0]
-   (let [r (first restaurants)
-         p (println "pass: "  count ", " (:name (first restaurants)))]
+   (let [r (first restaurants)]
      (if (nil? r)
        restaurant-map
        (recur (assoc restaurant-map
@@ -87,11 +96,6 @@
   [restaurant-map restaurants]
   (let [region-data (gen-index restaurants)
         region-id (:id region-data)
-        ann (println "resturants")
-        print-restaurants (clojure.pprint/pprint restaurants)
-        ann2 (println "region-data")
-        print-region (clojure.pprint/pprint region-data)
-        ann3 (println "region-id" region-id)
         restaurant-map (assoc restaurant-map
                             regions-key
                             (conj
@@ -103,7 +107,7 @@
   [coll val]
   (build-edn-data coll val))
 
-(comment ""
+(comment "test"
 (pfchangsindex.resource_provider/write-map-to-edn
   pfchangsindex.core/all-pfcs-region-data-edn
   (let [build-edn-data (partial build-edn-data base-edn-map)
