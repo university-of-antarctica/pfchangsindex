@@ -1,4 +1,5 @@
-(ns pfchangsindex.index_generator)
+(ns pfchangsindex.index_generator
+  (:require [fs-utils.core :as provider]))
 
 (def pfchangs-regex #"(?i)p.?f.? ?chang'?s")
 (def pfchangs-index :pfchangs_index)
@@ -108,7 +109,7 @@
   (build-edn-data coll val))
 
 (comment "test"
-(pfchangsindex.resource_provider/write-map-to-edn
+(provider/write-map-to-edn
   pfchangsindex.core/all-pfcs-region-data-edn
   (let [build-edn-data (partial build-edn-data base-edn-map)
         datas (list (first pfchangsindex.core/raw-pfc-regions))]

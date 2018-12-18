@@ -2,7 +2,7 @@
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]
             [clojure.walk :as walk]
-            [pfchangsindex.resource_provider :as provider]
+            [fs-utils.core :as provider]
             [clojure.java.io :as io]
             [places.search :refer [nearby-search details]]))
 

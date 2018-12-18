@@ -3,7 +3,7 @@
   (:require
     [pfchangsindex.api_query :as api]
     [pfchangsindex.index_generator :as index]
-    [pfchangsindex.resource_provider :as provider]
+    [fs-utils.core :as provider]
     [pfchangsindex.pfchangs_provider :as pfchangs]
     [pfchangsindex.geocoding :as geo]
     [clojure.edn :as edn]))

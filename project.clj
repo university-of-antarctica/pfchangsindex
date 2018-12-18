@@ -19,6 +19,7 @@
                  [clj-http "3.1.0"]
                  [org.clojure/data.json "0.2.6"]
                  [places "0.2.0"]
+                 [fs-utils "0.1.0-SNAPSHOT"]
                  [geocoder-clj "0.2.6"]]
   :main pfchangsindex.core
   :aot [pfchangsindex.core])

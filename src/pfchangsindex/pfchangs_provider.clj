@@ -1,7 +1,7 @@
 (ns pfchangsindex.pfchangs_provider
     (:require
       [geocoder.geonames :as geonames]
-      [pfchangsindex.resource_provider :as provider]))
+      [fs-utils.core :as provider]))
 
   (def pfchangs-location-data "resources/db/locations.json")
 
