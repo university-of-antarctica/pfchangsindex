@@ -17,7 +17,8 @@
   "string, map => response string
   Issues a request to url with given params."
   [url params]
-  (let [secret-params (assoc params :key (provider/get-key))
+  (let [secret-params (assoc params
+                       :key (provider/get-key #(%) "places-api-key.txt"))
         request (client/get url {:query-params secret-params })
         request-body (:body request)]
     (json/read-str request-body)))
@@ -26,15 +27,16 @@
   "lng lat radius => map
   Call inferior wrapper for google places api"
   [lng lat radius] ;;
-  (nearby-search (provider/get-key)
+  (nearby-search (provider/get-key #(%) "places-api-key.txt")
                  {:lng lng :lat lat}
                  :radius radius
                  :rankby "distance"
                  :types ["restaurant" "food"]));; :keyword "restaurant"))
 
-(comment (provider/write-to-file
-    google-places-outfile
-    (fn []  (my-nearby-search "-82.556" "35.484" 8064))) )
+(comment
+  (provider/cache
+    (fn []  (my-nearby-search "-82.556" "35.484" 8064))
+         google-places-outfile))
 
 (comment "gets relevant data from cached places query"
 (provider/extract-keys
